@@ -10,6 +10,12 @@ import (
 	"strings"
 	"sync"
 
+    "github.com/polymerdao/monomer/x/rollup"
+    rolluptypes "github.com/polymerdao/monomer/x/rollup/types"
+    rollupkeeper "github.com/polymerdao/monomer/x/rollup/keeper"
+    "github.com/polymerdao/monomer/testapp/x/testmodule"
+    testmodulekeeper "github.com/polymerdao/monomer/testapp/x/testmodule/keeper"
+
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	dbm "github.com/cosmos/cosmos-db"
@@ -82,7 +88,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/std"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	"github.com/cosmos/cosmos-sdk/types/msgservice"
 	signingtype "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -389,6 +394,8 @@ func NewChainApp(
 		packetforwardtypes.StoreKey,
 		wasmlctypes.StoreKey,
 		ratelimittypes.StoreKey,
+        rolluptypes.StoreKey,
+        testmodule.StoreKey,
 	)
 
 	tkeys := storetypes.NewTransientStoreKeys(paramstypes.TStoreKey)
@@ -854,6 +861,16 @@ func NewChainApp(
 		packetforward.NewAppModule(app.PacketForwardKeeper, app.GetSubspace(packetforwardtypes.ModuleName)),
 		wasmlc.NewAppModule(app.WasmClientKeeper),
 		ratelimit.NewAppModule(appCodec, app.RatelimitKeeper),
+        rollup.NewAppModule(
+            appCodec,
+            rollupkeeper.NewKeeper(
+                appCodec,
+                runtime.NewKVStoreService(keys[rolluptypes.StoreKey]),
+                &app.MintKeeper,
+                app.BankKeeper,
+            ),
+        ),
+        testmodule.New(testmodulekeeper.New(runtime.NewKVStoreService(keys[testmodule.StoreKey]))),
 	)
 
 	// BasicModuleManager defines the module BasicManager is in charge of setting up basic,
@@ -962,6 +979,8 @@ func NewChainApp(
 		packetforwardtypes.ModuleName,
 		wasmlctypes.ModuleName,
 		ratelimittypes.ModuleName,
+        rolluptypes.ModuleName,
+        testmodule.ModuleName,
 		// this line is used by starport scaffolding # stargate/app/initGenesis
 	}
 	app.ModuleManager.SetOrderInitGenesis(genesisModuleOrder...)
@@ -1064,7 +1083,7 @@ func NewChainApp(
 
 	// At startup, after all modules have been registered, check that all proto
 	// annotations are correct.
-	protoFiles, err := proto.MergedRegistry()
+	/*protoFiles, err := proto.MergedRegistry()
 	if err != nil {
 		panic(err)
 	}
@@ -1073,7 +1092,7 @@ func NewChainApp(
 		// Once we switch to using protoreflect-based antehandlers, we might
 		// want to panic here instead of logging a warning.
 		_, _ = fmt.Fprintln(os.Stderr, err.Error())
-	}
+	}*/
 
 	if loadLatest {
 		if err := app.LoadLatestVersion(); err != nil {

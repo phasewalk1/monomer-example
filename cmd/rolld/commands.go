@@ -8,6 +8,7 @@ import (
 	cmtcfg "github.com/cometbft/cometbft/config"
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/monomer/rollchain/app"
+	"github.com/polymerdao/monomer/integrations"
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -102,7 +103,16 @@ func initRootCmd(
 		snapshot.Cmd(newApp),
 	)
 
-	server.AddCommands(rootCmd, app.DefaultNodeHome, newApp, appExport, addModuleInitFlags)
+	// server.AddCommands(rootCmd, app.DefaultNodeHome, newApp, appExport, addModuleInitFlags)
+    monomerCmd := &cobra.Command{
+        Use:   "monomer",
+        Aliases: []string{"commet", "cometbft", "tendermint"},
+        Short: "Monomer subcommands",
+    }
+    monomerCmd.AddCommand(server.StartCmdWithOptions(newApp, app.DefaultNodeHome, server.StartCmdOptions{
+        StartCommandHandler: integrations.StartCommandHandler,
+    }))
+    rootCmd.AddCommand(monomerCmd)
 
 	// add keybase, auxiliary RPC, query, genesis, and tx child commands
 	rootCmd.AddCommand(
